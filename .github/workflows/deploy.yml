@@ -1,8 +1,8 @@
-name: Website Deployment
+name: Deployment
 on:
   push:
     branches:
-      - control_flow
+      - main
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
       - name: Cache dependencies
         id: cache
         uses: actions/cache@v3
@@ -39,7 +39,7 @@ jobs:
         run: npm run test
       - name: Upload test report
         if: failure() && steps.run-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: test-report
           path: test.json
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
       - name: Cache dependencies
         id: cache
         uses: actions/cache@v3
@@ -59,31 +59,24 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm ci
       - name: Build website
-        id: build-website
         run: npm run build
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: dist-files
           path: dist
   deploy:
     needs: build
-    uses: ./.github/workflows/reusable.yml
-    with:
-      artifact-name: dist-files
-
-  print-deploy-result:
-    needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Print deploy output
-        run: echo "${{ needs.deploy.outputs.result }}"
-  report:
-    needs: [lint, deploy]
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Output information
-        run: |
-          echo "Someting went wrong"
-          echo "${{ toJSON(github) }}"
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Get build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dist-files
+          path: ./dist
+      - name: Output contents
+        run: ls
+      - name: Deploy site
+        run: echo "Deploying..."
